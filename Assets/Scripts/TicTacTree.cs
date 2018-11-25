@@ -6,7 +6,7 @@ public class TicTacTree
 {
 
     private Node<BoardValue> root;
-    private Node<BoardValue> currentNode;
+    public Node<BoardValue> currentNode;
     private bool playerOne;
     private bool yourTurn;
 
@@ -62,7 +62,7 @@ public class TicTacTree
     private Node<BoardValue> FindMaxChild(Node<BoardValue> pNode)
     {
         Node<BoardValue> bestChild = new Node<BoardValue> { Info = new BoardValue() };
-        bestChild.Info.Value = int.MaxValue;
+        bestChild.Info.Value = int.MinValue;
 
         foreach (Node<BoardValue> child in pNode.Childs)
         {

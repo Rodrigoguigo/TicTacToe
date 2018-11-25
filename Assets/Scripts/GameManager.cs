@@ -8,18 +8,61 @@ public class GameManager : MonoBehaviour
 
     private TicTacToe ticTacToe;
     private TicTacTree botTree;
-    private GameObject[] boardButtons;
+    private GameObject[] board;
+    private Animator[] boardAnim;
+    private Button[] boardButton;
     private bool botTurn;
 
-    public GameObject[] winLines;
+    public Animator[] winLines;
+    public Text btnStartText;
+    public Button btnNextMove;
+    public Toggle cbFirstPlayer;
+    public Toggle cbAutoPlay;
+    public TreeView treeView;
 
-    // Use this for initialization
-    void Start()
+    public void Start()
+    {
+        board = GameObject.FindGameObjectsWithTag("Button");
+        boardAnim = new Animator[board.Length];
+        boardButton = new Button[board.Length];
+
+        for (int i=0; i<board.Length; i++)
+        {
+            boardAnim[i] = board[i].GetComponent<Animator>();
+            boardButton[i] = board[i].GetComponent<Button>();
+        }
+    }
+
+
+    public void StartGame()
     {
         ticTacToe = new TicTacToe();
-        botTree = new TicTacTree(false);
-        botTurn = false;
-        boardButtons = GameObject.FindGameObjectsWithTag("Button");
+        botTree = new TicTacTree(!cbFirstPlayer.isOn);
+        botTurn = !cbFirstPlayer.isOn;
+        treeView.StartTreeView(botTree);
+
+        PrepareBoard();
+
+        foreach(Animator line in winLines)
+        {
+            line.SetBool("Line", false);
+        }
+
+        if (botTurn && cbAutoPlay.isOn)
+            StartCoroutine(BotMoveWithDelay());
+
+        btnNextMove.interactable = (!cbAutoPlay.isOn && botTurn);
+    }
+
+    void PrepareBoard()
+    {
+        for(int i=0; i<board.Length; i++)
+        {
+            boardAnim[i].SetBool("Cross", false);
+            boardAnim[i].SetBool("Circle", false);
+            boardButton[i].enabled = cbFirstPlayer.isOn;
+            boardButton[i].interactable = true;
+        }
     }
 
     public void MarkOnBoard(GameObject pBtnBoard)
@@ -46,47 +89,63 @@ public class GameManager : MonoBehaviour
             else
                 ChangeTurn();
         }
+
+        treeView.UpdateTreeView();
     }
 
-    public IEnumerator BotMove()
+    IEnumerator BotMoveWithDelay()
     {
         yield return new WaitForSeconds(0.5f);
+        BotMove();
+        yield return null;
+    }
+
+    public void BotMove()
+    {
         Vector2 nextMove = botTree.FindNextMove();
         int row = (int)nextMove.x; int col = (int)nextMove.y;
         string btnName = "BtnBoard" + row + col;
         GameObject btnBoard = GameObject.Find(btnName);
 
         MarkOnBoard(btnBoard);
-        yield return null;
     }
 
     public void ChangeTurn()
     {
-        foreach(GameObject btn in boardButtons)
+        foreach(Button btn in boardButton)
         {
-            Button btnButton = btn.GetComponent<Button>();
-            btnButton.enabled = !btnButton.enabled;
+            btn.enabled = !btn.enabled;
         }
 
         botTurn = !botTurn;
 
-        if (botTurn)
-            StartCoroutine(BotMove());
+        if(botTurn && cbAutoPlay.isOn)
+            StartCoroutine(BotMoveWithDelay());
+
+        if(!cbAutoPlay.isOn)
+            btnNextMove.interactable = !btnNextMove.interactable;
+
+        if (cbAutoPlay.isOn && btnNextMove.interactable)
+            btnNextMove.interactable = false;
     }
 
     public IEnumerator EndGame(int pWinner)
     {
-        foreach (GameObject btn in boardButtons)
+        foreach (Button btn in boardButton)
         {
-            btn.GetComponent<Button>().interactable = false;
+            btn.interactable = false;
         }
 
         int winningLine = (int)ticTacToe.GetWinningLine();
-        Animator lineAnim = winLines[winningLine].GetComponent<Animator>();
 
-        yield return new WaitForSeconds(0.5f);
+        if (winningLine != -1)
+        {
+            Animator lineAnim = winLines[winningLine];
 
-        lineAnim.SetBool("Line", true);
+            yield return new WaitForSeconds(0.5f);
+
+            lineAnim.SetBool("Line", true);
+        }
 
         yield return null;
     }
